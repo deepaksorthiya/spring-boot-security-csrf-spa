@@ -1,5 +1,6 @@
 package com.example.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.actuate.audit.AuditEventRepository;
@@ -9,6 +10,8 @@ import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -18,14 +21,16 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
-import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.csrf.*;
 import org.springframework.util.StringUtils;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.CorsUtils;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.function.Supplier;
 
@@ -35,33 +40,60 @@ public class WebAppSecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        // https://docs.spring.io/spring-security/reference/5.8/migration/servlet/exploits.html#_i_am_using_angularjs_or_another_javascript_framework
+        CookieCsrfTokenRepository tokenRepository = getCookieCsrfTokenRepository();
+        // Use only the handle() method of XorCsrfTokenRequestAttributeHandler and the
+        // default implementation of resolveCsrfTokenValue() from CsrfTokenRequestHandler
+        CsrfTokenRequestHandler requestHandler = new SpaCsrfTokenRequestHandler();
+
         http
                 .formLogin(login -> login
-                        .successHandler((request, response, authentication) -> response.setStatus(200)) // Just return 200 instead of redirecting
+                        .loginProcessingUrl("/api/login")
+                        .successHandler((request, response, authentication) -> writeToResponse(response, HttpStatus.OK, authentication)) // Just return 200 instead of redirecting to '/'
+                        .failureHandler(WebAppSecurityConfig::prepareResponse)
+                ) // We will use form login to authenticate users from the Angular frontend, it's okay to use a Controller though
+                .logout(logout -> logout
+                        .logoutUrl("/api/logout")
+                        .logoutSuccessHandler(new CsrfTokenAwareLogoutSuccessHandler(tokenRepository)) // Handler that generates and save a new CSRF token on logout
                 )
-                .logout(logout -> logout.logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.OK)))
                 .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                        .authenticationEntryPoint(WebAppSecurityConfig::prepareResponse)
+                        .accessDeniedHandler(WebAppSecurityConfig::prepareResponse)
                 )
-                .authorizeHttpRequests(authorizeHttpRequests ->
-                        authorizeHttpRequests
-                                //allow all actuator endpoints and all static content
-                                .requestMatchers(PathRequest.toStaticResources().atCommonLocations(), EndpointRequest.toAnyEndpoint()).permitAll()
-                                .requestMatchers("/user/**").hasAnyRole("USER", "ADMIN")
-                                .requestMatchers("/admin/**").hasRole("ADMIN")
-                                .requestMatchers("/server-info").permitAll()
-                                .anyRequest().authenticated())
+                .authorizeHttpRequests(authorizeHttpRequests -> authorizeHttpRequests
+                        //allow all actuator endpoints and all static content
+                        .requestMatchers(PathRequest.toStaticResources().atCommonLocations(), EndpointRequest.toAnyEndpoint()).permitAll()
+                        // allow all preflight request
+                        .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
+                        .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/server-info", "/").permitAll()
+                        .anyRequest().authenticated()
+                )
                 .anonymous(AbstractHttpConfigurer::disable)
                 // cors for angular
                 .cors(Customizer.withDefaults())
                 // SPA CSRF Config
                 .csrf(csrf -> csrf
-                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
-                )
-        ;
+                        .csrfTokenRepository(tokenRepository)
+                        .csrfTokenRequestHandler(requestHandler)
+                );
 
         return http.build();
+    }
+
+    private static CookieCsrfTokenRepository getCookieCsrfTokenRepository() {
+        CookieCsrfTokenRepository cookieCsrfTokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        cookieCsrfTokenRepository.setCookieCustomizer(cookie -> {
+            // this settings should be change when host is changed other localhost
+            // also will not work when backend and frontend running on different host
+            cookie.sameSite("Strict");
+            // secure cookie only works with localhost and https
+            cookie.secure(true);
+            // setting twice as issue was in old browser
+            cookie.httpOnly(false);
+        });
+        return cookieCsrfTokenRepository;
     }
 
     static final class SpaCsrfTokenRequestHandler implements CsrfTokenRequestHandler {
@@ -97,6 +129,28 @@ public class WebAppSecurityConfig {
              */
             return (StringUtils.hasText(headerValue) ? this.plain : this.xor).resolveCsrfTokenValue(request, csrfToken);
         }
+    }
+
+    private static void prepareResponse(HttpServletRequest request, HttpServletResponse response, Exception authException) throws IOException {
+
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
+        problemDetail.setType(URI.create(request.getRequestURI()));
+        problemDetail.setTitle(HttpStatus.UNAUTHORIZED.getReasonPhrase());
+        problemDetail.setInstance(URI.create(request.getRequestURI()));
+        problemDetail.setDetail(authException.getMessage());
+
+        writeToResponse(response, HttpStatus.UNAUTHORIZED, problemDetail);
+    }
+
+    private static void writeToResponse(HttpServletResponse response, HttpStatus httpStatus, Object object) throws IOException {
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setStatus(httpStatus.value());
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        PrintWriter writer = response.getWriter();
+        writer.write(objectMapper.writeValueAsString(object));
+        writer.flush();
+        writer.close();
     }
 
     @Bean

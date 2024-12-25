@@ -12,6 +12,10 @@ Java: 17
 Docker Desktop(Optional): Tested on 4.37.1
 ```
 
+### Angular Frontend
+
+https://github.com/deepaksorthiya/spring-angular-csrf-frontend
+
 ### Clone this repository:
 
 ```bash
@@ -29,6 +33,12 @@ cd spring-boot-security-csrf-spa
 
 ```bash
 ./mvnw clean spring-boot:build-image -DskipTests
+```
+
+OR
+
+```bash
+docker build -t deepaksorthiya/spring-boot-security-csrf-spa:0.0.1-SNAPSHOT . 
 ```
 
 ### Run Project:

@@ -2,8 +2,9 @@
 FROM bellsoft/liberica-runtime-container:jdk-17-stream-musl AS builder
 
 WORKDIR /home/app
-ADD . /home/app/spring-boot-security-csrf-spa
-RUN cd spring-boot-security-csrf-spa && chmod +x mvnw && ./mvnw -Dmaven.test.skip=true clean package
+COPY . /home/app/spring-boot-security-csrf-spa
+WORKDIR /home/app/spring-boot-security-csrf-spa
+RUN  chmod +x mvnw && ./mvnw -Dmaven.test.skip=true clean package
 
 # Stage 2: Layer Tool Stage
 FROM bellsoft/liberica-runtime-container:jdk-17-cds-slim-musl AS optimizer

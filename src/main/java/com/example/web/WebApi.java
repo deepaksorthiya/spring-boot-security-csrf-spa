@@ -9,9 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -24,31 +22,31 @@ public class WebApi {
     private static final Logger LOGGER = LoggerFactory.getLogger(WebApi.class);
 
 
-    @GetMapping("/principal")
+    @GetMapping("/api/principal")
     public Principal principal(Principal principal) {
         LOGGER.info("Principal Object :: {} ", principal);
         return principal;
     }
 
-    @GetMapping("/authentication")
+    @GetMapping("/api/authentication")
     public Authentication authentication(Authentication authentication) {
         LOGGER.info("Authentication Object :: {} ", authentication);
         return authentication;
     }
 
-    @GetMapping({"/", "/user", "/user/me"})
+    @RequestMapping(value = {"/api/user", "/api/user/me"}, method = {RequestMethod.GET, RequestMethod.POST})
     public ResponseEntity<User> userAccess(@AuthenticationPrincipal User user) {
         LOGGER.info("You have USER level access USER :: {} ", user);
         return ResponseEntity.ok(user);
     }
 
-    @GetMapping("/admin")
+    @GetMapping("/api/admin")
     public ResponseEntity<User> adminAccess(@AuthenticationPrincipal User user) {
         LOGGER.info("You have ADMIN level access USER ::{} ", user);
         return ResponseEntity.ok(user);
     }
 
-    @GetMapping(value = "/server-info", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = {"/", "/server-info"}, produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<String, String> getRequestInfo(@RequestHeader Map<String, String> httpHeaders, HttpServletRequest httpServletRequest) {
         httpHeaders.put("remoteHost", httpServletRequest.getRemoteHost());
         httpHeaders.put("localAddress", httpServletRequest.getLocalAddr());
