@@ -62,12 +62,14 @@ USER2 ==> Username: admin Password : admin
 
 ### Rest APIs
 
+http://localhost:8080/api/login POST <br>
+http://localhost:8080/api/logout <br>
+http://localhost:8080/api/user <br>
+http://localhost:8080/api/user/me <br>
+http://localhost:8080/api/admin <br>
+http://localhost:8080/api/principal <br>
+http://localhost:8080/api/authentication <br>
 http://localhost:8080/ <br>
-http://localhost:8080/user <br>
-http://localhost:8080/user/me <br>
-http://localhost:8080/admin <br>
-http://localhost:8080/principal <br>
-http://localhost:8080/authentication <br>
 http://localhost:8080/server-info
 
 ### Reference Documentation
