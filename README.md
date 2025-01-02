@@ -96,6 +96,34 @@ http://localhost:8080/api/authentication <br>
 http://localhost:8080/ <br>
 http://localhost:8080/server-info
 
+## Maven Clean Plugin Config
+
+add below plugin config in [pom.xml](pom.xml) if you want
+to remove directories during clean phase.
+
+```
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-clean-plugin</artifactId>
+    <configuration>
+        <filesets>
+            <fileset>
+                <directory>src/main/frontend/.angular</directory>
+            </fileset>
+            <fileset>
+                <directory>src/main/frontend/dist</directory>
+            </fileset>
+            <fileset>
+                <directory>src/main/frontend/node</directory>
+            </fileset>
+            <fileset>
+                <directory>src/main/frontend/node_modules</directory>
+            </fileset>
+        </filesets>
+    </configuration>
+</plugin>
+```
+
 ## Reference Documentation
 
 For further reference, please consider the following sections:
