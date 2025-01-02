@@ -21,12 +21,15 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.csrf.*;
+import org.springframework.security.web.servlet.util.matcher.MvcRequestMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.CorsUtils;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -39,7 +42,7 @@ import java.util.function.Supplier;
 public class WebAppSecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, MvcRequestMatcher.Builder mvc) throws Exception {
         // https://docs.spring.io/spring-security/reference/5.8/migration/servlet/exploits.html#_i_am_using_angularjs_or_another_javascript_framework
         CookieCsrfTokenRepository tokenRepository = getCookieCsrfTokenRepository();
         // Use only the handle() method of XorCsrfTokenRequestAttributeHandler and the
@@ -47,6 +50,7 @@ public class WebAppSecurityConfig {
         CsrfTokenRequestHandler requestHandler = new SpaCsrfTokenRequestHandler();
 
         http
+                .addFilterAfter(new SpaWebFilter(), BasicAuthenticationFilter.class)
                 .formLogin(login -> login
                         .loginProcessingUrl("/api/login")
                         .successHandler((request, response, authentication) -> writeToResponse(response, HttpStatus.OK, authentication)) // Just return 200 instead of redirecting to '/'
@@ -61,13 +65,14 @@ public class WebAppSecurityConfig {
                         .accessDeniedHandler(WebAppSecurityConfig::prepareResponse)
                 )
                 .authorizeHttpRequests(authorizeHttpRequests -> authorizeHttpRequests
+                        .requestMatchers(mvc.pattern("/index.html"), mvc.pattern("/*.js"), mvc.pattern("/*.txt"), mvc.pattern("/*.json"), mvc.pattern("/*.map"), mvc.pattern("/*.css")).permitAll()
                         //allow all actuator endpoints and all static content
                         .requestMatchers(PathRequest.toStaticResources().atCommonLocations(), EndpointRequest.toAnyEndpoint()).permitAll()
                         // allow all preflight request
                         .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
                         .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/server-info", "/").permitAll()
+                        .requestMatchers("/server-info").permitAll()
                         .anyRequest().authenticated()
                 )
                 .anonymous(AbstractHttpConfigurer::disable)
@@ -80,6 +85,11 @@ public class WebAppSecurityConfig {
                 );
 
         return http.build();
+    }
+
+    @Bean
+    MvcRequestMatcher.Builder mvc(HandlerMappingIntrospector introspector) {
+        return new MvcRequestMatcher.Builder(introspector);
     }
 
     private static CookieCsrfTokenRepository getCookieCsrfTokenRepository() {
