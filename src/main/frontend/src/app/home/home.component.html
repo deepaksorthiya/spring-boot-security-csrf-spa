@@ -1,0 +1,4 @@
+<p>Hello :: {{ currentUser$ | async | json }}</p>
+<p>Server Info :: {{ serverInfo$ | async | json }}</p>
+<button type="button" (click)="logout()">Logout</button>
+<button type="button" (click)="getServerInfo()">Server Info</button>
