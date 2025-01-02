@@ -30,9 +30,3 @@ build/
 
 ### VS Code ###
 .vscode/
-
-### Node Maven
-src/main/frontend/node
-src/main/frontend/.angular
-src/main/frontend/dist
-src/main/frontend/node_modules
