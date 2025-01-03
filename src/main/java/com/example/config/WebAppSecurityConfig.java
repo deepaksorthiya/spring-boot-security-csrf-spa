@@ -7,6 +7,7 @@ import org.springframework.boot.actuate.audit.AuditEventRepository;
 import org.springframework.boot.actuate.audit.InMemoryAuditEventRepository;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
+import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -39,9 +40,9 @@ import java.util.function.Supplier;
 public class WebAppSecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, ServerProperties serverProperties) throws Exception {
         // https://docs.spring.io/spring-security/reference/5.8/migration/servlet/exploits.html#_i_am_using_angularjs_or_another_javascript_framework
-        CookieCsrfTokenRepository tokenRepository = getCookieCsrfTokenRepository();
+        CookieCsrfTokenRepository tokenRepository = getCookieCsrfTokenRepository(serverProperties);
         // Use only the handle() method of XorCsrfTokenRequestAttributeHandler and the
         // default implementation of resolveCsrfTokenValue() from CsrfTokenRequestHandler
         CsrfTokenRequestHandler requestHandler = new SpaCsrfTokenRequestHandler();
@@ -82,12 +83,12 @@ public class WebAppSecurityConfig {
         return http.build();
     }
 
-    private static CookieCsrfTokenRepository getCookieCsrfTokenRepository() {
+    private static CookieCsrfTokenRepository getCookieCsrfTokenRepository(ServerProperties serverProperties) {
         CookieCsrfTokenRepository cookieCsrfTokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         cookieCsrfTokenRepository.setCookieCustomizer(cookie -> {
             // this settings should be change when host is changed other localhost
             // also will not work when backend and frontend running on different host
-            //cookie.sameSite("Strict");
+            cookie.sameSite(serverProperties.getServlet().getSession().getCookie().getSameSite().attributeValue());
             // secure cookie only works with localhost and https
             cookie.secure(true);
             // setting twice as issue was in old browser
