@@ -87,7 +87,7 @@ public class WebAppSecurityConfig {
         cookieCsrfTokenRepository.setCookieCustomizer(cookie -> {
             // this settings should be change when host is changed other localhost
             // also will not work when backend and frontend running on different host
-            cookie.sameSite("Strict");
+            //cookie.sameSite("Strict");
             // secure cookie only works with localhost and https
             cookie.secure(true);
             // setting twice as issue was in old browser
