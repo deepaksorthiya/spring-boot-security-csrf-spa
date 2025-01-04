@@ -176,7 +176,7 @@ public class WebAppSecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.addAllowedHeader("*");
         config.setAllowedMethods(Arrays.asList("GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedOrigins(Arrays.asList("http://localhost", "https://spring-angular-csrf-frontend.onrender.com"));
+        config.setAllowedOrigins(Arrays.asList("http://localhost", "http://localhost:4200", "http://localhost:8080", "https://spring-angular-csrf-frontend.onrender.com"));
         //config.setAllowedOriginPatterns(List.of("*"));
         config.setAllowCredentials(true); // This is important since we are using session cookies
         source.registerCorsConfiguration("/**", config);
