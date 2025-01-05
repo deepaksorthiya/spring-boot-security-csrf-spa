@@ -90,7 +90,7 @@ public class WebAppSecurityConfig {
             // also will not work when backend and frontend running on different host
             cookie.sameSite(serverProperties.getServlet().getSession().getCookie().getSameSite().attributeValue());
             // secure cookie only works with localhost and https
-            cookie.secure(true);
+            cookie.secure(serverProperties.getServlet().getSession().getCookie().getSecure());
             // setting twice as issue was in old browser
             cookie.httpOnly(false);
         });
