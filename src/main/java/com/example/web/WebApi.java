@@ -61,4 +61,9 @@ public class WebApi {
         LOGGER.info("request headers :: {}", httpHeaders);
         return httpHeaders;
     }
+
+    @PostMapping("/api/post")
+    public ResponseEntity<?> performPostRequest() {
+        return ResponseEntity.ok().body(Map.of("postId", 1, "content", "Hello World"));
+    }
 }
