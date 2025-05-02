@@ -83,6 +83,9 @@ USER2 ==> Username: admin Password : admin
 
 ## Testing
 
+** Full Postman API Collection is
+available [here](https://www.postman.com/deepaksorthiya/workspace/public-ws/collection/12463530-ec68cbe3-1f88-41ac-a00e-7cb6b7045288?action=share&creator=12463530&active-environment=12463530-55c10ebe-548f-4c1b-a5ec-4d4ed996c033) **
+
 http://localhost:8080/api/login POST <br>
 http://localhost:8080/api/logout <br>
 http://localhost:8080/api/user <br>
