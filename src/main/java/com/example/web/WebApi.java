@@ -4,12 +4,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.actuate.endpoint.InvalidEndpointRequestException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpServerErrorException;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -60,6 +62,11 @@ public class WebApi {
         }
         LOGGER.info("request headers :: {}", httpHeaders);
         return httpHeaders;
+    }
+
+    @RequestMapping(value = "/api/exception", method = {RequestMethod.GET, RequestMethod.POST})
+    public ResponseEntity<?> throwException() {
+        throw new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error");
     }
 
     @PostMapping("/api/post")
